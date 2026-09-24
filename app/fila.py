@@ -27,9 +27,12 @@ def cliente():
 def enfileirar(texto: str) -> str:
     """Coloca uma tarefa na fila e devolve o id para consulta posterior."""
     tarefa_id = str(uuid.uuid4())
-    cliente().rpush(FILA_TAREFAS, json.dumps({"id": tarefa_id, "texto": texto}))
+    # Grava o status ANTES de enfileirar: se enfileirarmos primeiro, um worker
+    # rapido pode processar e gravar "pronto" antes deste set, que entao
+    # sobrescreveria o resultado com "na_fila" (condicao de corrida).
     cliente().set(PREFIXO_RESULTADO + tarefa_id,
                   json.dumps({"status": "na_fila"}))
+    cliente().rpush(FILA_TAREFAS, json.dumps({"id": tarefa_id, "texto": texto}))
     return tarefa_id
 
 
